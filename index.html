@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>PlaceIQ — Student Placement Predictor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<style>
+/* ── Reset ─────────────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:       #05080f;
+  --s1:       #0a0f1e;
+  --s2:       #0f1628;
+  --s3:       #141d35;
+  --border:   #1a2640;
+  --borderhi: #243354;
+  --text:     #d8e4ff;
+  --muted:    #5c7aaa;
+  --dim:      #2d3f60;
+  --blue:     #4d8dff;
+  --blue-g:   rgba(77,141,255,.18);
+  --cyan:     #00d4b4;
+  --cyan-g:   rgba(0,212,180,.14);
+  --green:    #22d18b;
+  --green-g:  rgba(34,209,139,.12);
+  --red:      #ff5573;
+  --red-g:    rgba(255,85,115,.12);
+  --amber:    #ffb84d;
+  --amber-g:  rgba(255,184,77,.12);
+  --r:        12px;
+  --r-s:      8px;
+  --fh:       'Syne',sans-serif;
+  --fb:       'Manrope',sans-serif;
+  --fm:       'Space Mono',monospace;
+  --shadow:   0 4px 24px rgba(0,0,0,.5);
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--fb);
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  background-image:
+    radial-gradient(ellipse 90% 50% at 50% -5%,rgba(77,141,255,.1) 0%,transparent 60%),
+    radial-gradient(ellipse 40% 30% at 95% 85%,rgba(0,212,180,.06) 0%,transparent 55%);
+}
+
+/* ── Layout ─────────────────────────────────────────────────────────────────── */
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px 80px}
+
+header{
+  padding:36px 0 28px;
+  border-bottom:1px solid var(--border);
+  margin-bottom:32px;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;
+}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-icon{
+  width:42px;height:42px;border-radius:10px;
+  background:linear-gradient(135deg,var(--blue),var(--cyan));
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+}
+.brand-name{
+  font-family:var(--fh);font-size:24px;font-weight:800;letter-spacing:-.4px;
+  background:linear-gradient(90deg,#fff 20%,var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.brand-sub{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.6px;margin-top:2px}
+.live-pill{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 16px;background:var(--s1);
+  border:1px solid var(--border);border-radius:99px;
+  font-size:12px;color:var(--muted);
+}
+.live-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--green);box-shadow:0 0 6px var(--green);
+  animation:blink 2s infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* stat bar */
+.stat-bar{
+  display:flex;gap:1px;margin-bottom:28px;
+  border:1px solid var(--border);border-radius:var(--r);overflow:hidden;
+}
+.stat-item{
+  flex:1;padding:14px 18px;background:var(--s1);
+  border-right:1px solid var(--border);
+}
+.stat-item:last-child{border-right:none}
+.stat-label{font-size:10px;text-transform:uppercase;letter-spacing:1.4px;color:var(--muted);margin-bottom:4px}
+.stat-val{font-family:var(--fm);font-size:18px;font-weight:700;color:var(--text)}
+.stat-val.blue{color:var(--blue)}
+.stat-val.green{color:var(--green)}
+.stat-val.cyan{color:var(--cyan)}
+.stat-val.amber{color:var(--amber)}
+
+/* main grid */
+.grid{display:grid;grid-template-columns:400px 1fr;gap:20px;align-items:start}
+@media(max-width:880px){.grid{grid-template-columns:1fr}}
+
+/* ── Card ──────────────────────────────────────────────────────────────────── */
+.card{
+  background:var(--s1);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden;
+}
+.card-head{
+  padding:16px 20px 14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.card-head h2{font-family:var(--fh);font-size:14px;font-weight:700;letter-spacing:.2px}
+.ch-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.ci{
+  width:30px;height:30px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;
+}
+.ci.b{background:rgba(77,141,255,.15)}
+.ci.t{background:rgba(0,212,180,.12)}
+.ci.g{background:rgba(34,209,139,.12)}
+.ci.a{background:rgba(255,184,77,.12)}
+
+/* ── Form sections ──────────────────────────────────────────────────────────── */
+.sec-label{
+  padding:12px 20px 10px;border-bottom:1px solid var(--border);
+  background:var(--s2);
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.8px;color:var(--muted);
+  display:flex;align-items:center;gap:7px;
+}
+.fg{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;
+  padding:16px 20px;
+}
+.fg.triple{grid-template-columns:1fr 1fr 1fr}
+
+.field{display:flex;flex-direction:column;gap:5px}
+.field.full{grid-column:1/-1}
+.field label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--muted)}
+.field input,.field select{
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--r-s);
+  color:var(--text);font-family:var(--fb);font-size:13px;
+  padding:9px 11px;outline:none;width:100%;
+  transition:border-color .18s,box-shadow .18s;
+  -webkit-appearance:none;
+}
+.field input:focus,.field select:focus{
+  border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-g);
+}
+.field select option{background:#0f1628}
+
+/* range */
+.rw{display:flex;align-items:center;gap:9px}
+.rw input[type=range]{
+  flex:1;-webkit-appearance:none;
+  height:4px;background:var(--border);border-radius:2px;
+  border:none;box-shadow:none;padding:0;cursor:pointer;
+}
+.rw input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:15px;height:15px;border-radius:50%;
+  background:var(--blue);border:2px solid var(--bg);
+  box-shadow:0 0 8px var(--blue-g);cursor:pointer;
+}
+.rv{
+  font-family:var(--fm);font-size:12px;color:var(--text);
+  min-width:34px;text-align:right;
+}
+
+/* toggle group */
+.toggle-group{display:flex;gap:6px}
+.toggle-group button{
+  flex:1;padding:8px 6px;
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--r-s);
+  color:var(--muted);font-family:var(--fb);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .15s;
+}
+.toggle-group button.active{
+  background:rgba(77,141,255,.15);border-color:var(--blue);color:var(--blue);
+}
+
+/* submit */
+.submit-wrap{padding:4px 20px 20px}
+.btn-sub{
+  width:100%;padding:13px;
+  background:linear-gradient(135deg,var(--blue),#2563eb);
+  border:none;border-radius:var(--r-s);
+  color:#fff;font-family:var(--fh);font-size:14px;font-weight:700;letter-spacing:.4px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:opacity .18s,box-shadow .18s,transform .1s;
+}
+.btn-sub:hover{opacity:.9;box-shadow:0 4px 20px rgba(77,141,255,.4)}
+.btn-sub:active{transform:scale(.99)}
+.btn-sub:disabled{opacity:.45;cursor:not-allowed}
+.spin{
+  width:15px;height:15px;border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Results ────────────────────────────────────────────────────────────────── */
+.results-stack{display:flex;flex-direction:column;gap:18px}
+
+.empty-state{
+  padding:56px 28px;display:flex;flex-direction:column;
+  align-items:center;gap:14px;text-align:center;
+}
+.empty-icon{font-size:38px;opacity:.25}
+.empty-text{font-size:13px;color:var(--dim);line-height:1.75}
+
+/* prediction result */
+.pred-body{padding:24px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.gauge-wrap{position:relative;width:124px;height:124px;flex-shrink:0}
+.gauge-wrap canvas{width:124px!important;height:124px!important}
+.gauge-center{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  text-align:center;
+}
+.g-pct{font-family:var(--fm);font-size:21px;font-weight:700;line-height:1}
+.g-lbl{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-top:3px}
+
+.pred-meta{flex:1;min-width:170px}
+.verdict-chip{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:6px 13px;border-radius:99px;
+  font-size:12px;font-weight:700;margin-bottom:14px;
+}
+.verdict-chip.placed {background:var(--green-g);color:var(--green);border:1px solid rgba(34,209,139,.3)}
+.verdict-chip.risk   {background:var(--red-g);  color:var(--red);  border:1px solid rgba(255,85,115,.3)}
+.verdict-chip.neutral{background:var(--amber-g);color:var(--amber);border:1px solid rgba(255,184,77,.3)}
+
+.prob-bars{display:flex;flex-direction:column;gap:8px}
+.prob-row{display:flex;align-items:center;gap:10px}
+.prob-lbl{font-size:11px;color:var(--muted);width:76px;flex-shrink:0}
+.prob-track{flex:1;height:6px;background:var(--s3);border-radius:3px;overflow:hidden}
+.prob-fill{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.22,1,.36,1)}
+.prob-fill.placed {background:var(--green)}
+.prob-fill.risk   {background:var(--red)}
+.prob-val{font-family:var(--fm);font-size:11px;color:var(--text);width:36px;text-align:right;flex-shrink:0}
+
+/* SHAP chart */
+.shap-wrap{padding:18px 20px}
+.shap-legend{display:flex;gap:18px;margin-bottom:12px}
+.shap-leg-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.shap-dot{width:10px;height:10px;border-radius:3px}
+.shap-dot.p{background:var(--green)}
+.shap-dot.n{background:var(--red)}
+
+/* Recommendations */
+.reco-msg{padding:12px 20px 0;font-size:12px;color:var(--muted);line-height:1.6}
+.reco-list{padding:12px 20px 20px;display:flex;flex-direction:column;gap:10px}
+.reco-card{
+  background:var(--s2);border:1px solid var(--border);
+  border-radius:var(--r-s);padding:13px 15px;
+  display:flex;gap:12px;
+  transition:border-color .18s;
+}
+.reco-card:hover{border-color:var(--borderhi)}
+.reco-num{
+  font-family:var(--fm);font-size:10px;color:var(--dim);
+  min-width:18px;padding-top:2px;
+}
+.reco-body-inner{flex:1}
+.reco-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px}
+.reco-action{font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.55}
+.reco-footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.gain-tag{
+  font-family:var(--fm);font-size:11px;font-weight:700;
+  color:var(--green);background:var(--green-g);
+  padding:2px 8px;border-radius:4px;
+}
+.diff-tag{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;
+  padding:2px 7px;border-radius:4px;
+}
+.diff-tag.easy  {background:rgba(0,212,180,.1);color:var(--cyan)}
+.diff-tag.medium{background:var(--amber-g);color:var(--amber)}
+.diff-tag.hard  {background:var(--red-g);color:var(--red)}
+.change-tag{font-size:10px;color:var(--dim);font-family:var(--fm)}
+
+/* ── Animations ──────────────────────────────────────────────────────────────── */
+.fade-in{animation:fadeIn .32s ease forwards}
+@keyframes fadeIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+
+/* ── Toast ───────────────────────────────────────────────────────────────────── */
+.toast{
+  position:fixed;bottom:22px;right:22px;
+  background:#160a0e;border:1px solid var(--red);
+  border-radius:var(--r-s);padding:13px 17px;
+  color:var(--red);font-size:12px;max-width:320px;
+  z-index:999;display:none;animation:fadeIn .28s ease;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- Header -->
+<header>
+  <div class="brand">
+    <div class="brand-icon">🎓</div>
+    <div>
+      <div class="brand-name">PlaceIQ</div>
+      <div class="brand-sub">AI Placement Intelligence · v2.0</div>
+    </div>
+  </div>
+  <div class="live-pill">
+    <span class="live-dot"></span>
+    XGBoost · SHAP · Counterfactual
+  </div>
+</header>
+
+<!-- Stat bar -->
+<div class="stat-bar">
+  <div class="stat-item">
+    <div class="stat-label">Model</div>
+    <div class="stat-val blue">XGBoost</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-label">AUC-ROC</div>
+    <div class="stat-val green">86.3%</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-label">Training Samples</div>
+    <div class="stat-val cyan">9,915</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-label">XAI Method</div>
+    <div class="stat-val amber">TreeSHAP</div>
+  </div>
+</div>
+
+<!-- Main grid -->
+<div class="grid">
+
+  <!-- LEFT: Form -->
+  <div class="card">
+    <div class="card-head">
+      <div class="ci b">📋</div>
+      <div>
+        <h2>Student Profile</h2>
+        <div class="ch-sub">9 features · fill all fields</div>
+      </div>
+    </div>
+
+    <form id="form" novalidate>
+
+      <!-- Academic -->
+      <div class="sec-label"><span>📚</span> Academic</div>
+      <div class="fg">
+        <div class="field">
+          <label>CGPA</label>
+          <div class="rw">
+            <input type="range" id="CGPA" min="6.5" max="9.1" step="0.1" value="7.5"
+                   oninput="rv('CGPA_v',parseFloat(this.value).toFixed(1))"/>
+            <span class="rv" id="CGPA_v">7.5</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>SSC Marks (10th %)</label>
+          <input type="number" id="SSC_Marks" min="55" max="90" step="1" value="72" placeholder="55 – 90"/>
+        </div>
+        <div class="field">
+          <label>HSC Marks (12th %)</label>
+          <input type="number" id="HSC_Marks" min="57" max="88" step="1" value="70" placeholder="57 – 88"/>
+        </div>
+        <div class="field">
+          <label>Aptitude Test Score</label>
+          <div class="rw">
+            <input type="range" id="AptitudeTestScore" min="60" max="90" step="1" value="75"
+                   oninput="rv('Apt_v',this.value)"/>
+            <span class="rv" id="Apt_v">75</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activities -->
+      <div class="sec-label"><span>⚡</span> Activities &amp; Skills</div>
+      <div class="fg triple">
+        <div class="field">
+          <label>Internships</label>
+          <div class="rw">
+            <input type="range" id="Internships" min="0" max="2" step="1" value="1"
+                   oninput="rv('Int_v',this.value)"/>
+            <span class="rv" id="Int_v">1</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Projects</label>
+          <div class="rw">
+            <input type="range" id="Projects" min="0" max="3" step="1" value="2"
+                   oninput="rv('Proj_v',this.value)"/>
+            <span class="rv" id="Proj_v">2</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Workshops / Certs</label>
+          <div class="rw">
+            <input type="range" id="Workshops_Certifications" min="0" max="3" step="1" value="1"
+                   oninput="rv('WC_v',this.value)"/>
+            <span class="rv" id="WC_v">1</span>
+          </div>
+        </div>
+      </div>
+      <div class="fg">
+        <div class="field">
+          <label>Soft Skills Rating</label>
+          <div class="rw">
+            <input type="range" id="SoftSkillsRating" min="3.0" max="4.8" step="0.1" value="3.5"
+                   oninput="rv('SS_v',parseFloat(this.value).toFixed(1))"/>
+            <span class="rv" id="SS_v">3.5</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Extracurricular Activities</label>
+          <div class="toggle-group" id="extraToggle">
+            <button type="button" class="active" data-val="Yes" onclick="setToggle('extraToggle',this)">Yes</button>
+            <button type="button" data-val="No"  onclick="setToggle('extraToggle',this)">No</button>
+          </div>
+          <input type="hidden" id="ExtracurricularActivities" value="Yes"/>
+        </div>
+      </div>
+
+      <div class="submit-wrap">
+        <button type="submit" class="btn-sub" id="submitBtn">
+          <span id="btn-text">⚡ Predict Placement</span>
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- RIGHT: Results -->
+  <div class="results-stack">
+
+    <!-- Prediction card -->
+    <div class="card" id="predCard">
+      <div class="card-head">
+        <div class="ci t">🎯</div>
+        <div>
+          <h2>Prediction Result</h2>
+          <div class="ch-sub">Placement probability + verdict</div>
+        </div>
+      </div>
+      <div id="predContent">
+        <div class="empty-state">
+          <div class="empty-icon">📊</div>
+          <div class="empty-text">Fill the student profile and click<br/><strong>Predict Placement</strong> to see results.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHAP card -->
+    <div class="card" id="shapCard" style="display:none">
+      <div class="card-head">
+        <div class="ci b">🔍</div>
+        <div>
+          <h2>SHAP — Feature Explanation</h2>
+          <div class="ch-sub">Why did the model make this prediction?</div>
+        </div>
+      </div>
+      <div class="shap-wrap">
+        <div class="shap-legend">
+          <div class="shap-leg-item"><div class="shap-dot p"></div>Pushes toward Placed</div>
+          <div class="shap-leg-item"><div class="shap-dot n"></div>Pushes toward Not Placed</div>
+        </div>
+        <canvas id="shapChart" height="240"></canvas>
+      </div>
+    </div>
+
+    <!-- Recommendations card -->
+    <div class="card" id="recoCard" style="display:none">
+      <div class="card-head">
+        <div class="ci g">💡</div>
+        <div>
+          <h2>Improvement Recommendations</h2>
+          <div class="ch-sub">Counterfactual analysis — ranked by impact</div>
+        </div>
+      </div>
+      <div class="reco-msg" id="recoMsg"></div>
+      <div class="reco-list" id="recoList"></div>
+    </div>
+
+  </div><!-- /results -->
+
+</div><!-- /grid -->
+</div><!-- /wrap -->
+
+<div class="toast" id="toast">⚠️ <span id="toastMsg"></span></div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+const API = "http://localhost:8000"; // change if backend is on a different host
+
+// ── UI Helpers ────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+function rv(id, val){ $(id).textContent = val }
+
+function setToggle(groupId, btn){
+  document.querySelectorAll(`#${groupId} button`).forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // update hidden input: derive its ID from group id
+  const hiddenId = groupId === 'extraToggle' ? 'ExtracurricularActivities' : groupId;
+  $(hiddenId).value = btn.dataset.val;
+}
+
+function showToast(msg){
+  $('toastMsg').textContent = msg;
+  $('toast').style.display = 'block';
+  setTimeout(() => $('toast').style.display = 'none', 5500);
+}
+
+function setLoading(on){
+  $('submitBtn').disabled = on;
+  $('btn-text').innerHTML = on
+    ? '<div class="spin"></div> Analysing...'
+    : '⚡ Predict Placement';
+}
+
+function collectForm(){
+  return {
+    CGPA:                       parseFloat($('CGPA').value),
+    Internships:                parseInt($('Internships').value),
+    Projects:                   parseInt($('Projects').value),
+    Workshops_Certifications:   parseInt($('Workshops_Certifications').value),
+    AptitudeTestScore:          parseInt($('AptitudeTestScore').value),
+    SoftSkillsRating:           parseFloat($('SoftSkillsRating').value),
+    ExtracurricularActivities:  $('ExtracurricularActivities').value,
+    SSC_Marks:                  parseInt($('SSC_Marks').value),
+    HSC_Marks:                  parseInt($('HSC_Marks').value),
+  };
+}
+
+function validateForm(p){
+  if(isNaN(p.SSC_Marks)||p.SSC_Marks<55||p.SSC_Marks>90)
+    return "SSC Marks must be between 55 and 90.";
+  if(isNaN(p.HSC_Marks)||p.HSC_Marks<57||p.HSC_Marks>88)
+    return "HSC Marks must be between 57 and 88.";
+  return null;
+}
+
+async function post(endpoint, body){
+  const res = await fetch(`${API}${endpoint}`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body),
+  });
+  if(!res.ok){
+    const e = await res.json().catch(()=>({detail:'Unknown error'}));
+    throw new Error(e.detail||`HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// ── Render: Prediction ────────────────────────────────────────────────────────
+let gaugeChart = null;
+function renderPrediction(d){
+  const prob  = d.placement_probability_pct;
+  const probN = 100 - prob;
+  const cls   = prob>=65?'placed':prob>=45?'neutral':'risk';
+  const icon  = prob>=65?'✅':prob>=45?'⚠️':'❌';
+
+  const colorMap = {placed:'#22d18b', neutral:'#ffb84d', risk:'#ff5573'};
+  const c = colorMap[cls];
+
+  $('predContent').innerHTML = `
+    <div class="pred-body fade-in">
+      <div class="gauge-wrap">
+        <canvas id="gaugeCanvas"></canvas>
+        <div class="gauge-center">
+          <div class="g-pct" style="color:${c}">${prob.toFixed(1)}%</div>
+          <div class="g-lbl">Placed</div>
+        </div>
+      </div>
+      <div class="pred-meta">
+        <div class="verdict-chip ${cls}">${icon} ${d.verdict}</div>
+        <div class="prob-bars">
+          <div class="prob-row">
+            <div class="prob-lbl">Placed</div>
+            <div class="prob-track"><div class="prob-fill placed" style="width:${prob}%"></div></div>
+            <div class="prob-val">${prob.toFixed(1)}%</div>
+          </div>
+          <div class="prob-row">
+            <div class="prob-lbl">Not Placed</div>
+            <div class="prob-track"><div class="prob-fill risk" style="width:${probN.toFixed(1)}%"></div></div>
+            <div class="prob-val">${probN.toFixed(1)}%</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  if(gaugeChart) gaugeChart.destroy();
+  const ctx = $('gaugeCanvas').getContext('2d');
+  gaugeChart = new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      datasets:[{
+        data:[prob,probN],
+        backgroundColor:[c,'rgba(20,29,53,.8)'],
+        borderWidth:0,
+        circumference:270,
+        rotation:-135,
+      }]
+    },
+    options:{
+      cutout:'76%',responsive:false,
+      plugins:{legend:{display:false},tooltip:{enabled:false}},
+      animation:{duration:900,easing:'easeOutQuart'}
+    }
+  });
+}
+
+// ── Render: SHAP ──────────────────────────────────────────────────────────────
+let shapChart = null;
+function renderSHAP(d){
+  const top = d.features.slice(0,9);
+  const labels = top.map(f=>{
+    const v = typeof f.value==='number'
+      ?(Number.isInteger(f.value)?f.value:parseFloat(f.value).toFixed(1))
+      :f.value;
+    return `${f.display_name} (${v})`;
+  });
+  const vals   = top.map(f=>f.shap_value);
+  const bgs    = vals.map(v=>v>=0?'rgba(34,209,139,.72)':'rgba(255,85,115,.72)');
+  const bords  = vals.map(v=>v>=0?'#22d18b':'#ff5573');
+
+  $('shapCard').style.display='';
+  if(shapChart) shapChart.destroy();
+
+  shapChart = new Chart($('shapChart').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{
+        data:vals,backgroundColor:bgs,borderColor:bords,
+        borderWidth:1,borderRadius:4,
+      }]
+    },
+    options:{
+      indexAxis:'y',responsive:true,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>` SHAP: ${c.parsed.x>0?'+':''}${c.parsed.x.toFixed(3)}`}}
+      },
+      scales:{
+        x:{
+          grid:{color:'rgba(26,38,64,.7)'},
+          ticks:{color:'#5c7aaa',font:{family:"'Space Mono'",size:10}},
+          title:{display:true,text:'SHAP value (impact on log-odds of Placed)',color:'#5c7aaa',font:{size:10}}
+        },
+        y:{
+          grid:{display:false},
+          ticks:{color:'#d8e4ff',font:{family:"'Manrope'",size:11}}
+        }
+      },
+      animation:{duration:550}
+    }
+  });
+}
+
+// ── Render: Recommendations ───────────────────────────────────────────────────
+function renderReco(d){
+  $('recoCard').style.display='';
+  $('recoMsg').textContent = d.message;
+
+  if(!d.recommendations.length){
+    $('recoList').innerHTML=`<p style="color:var(--muted);font-size:12px;padding:4px 0">
+      No significant improvements identified — strong profile!</p>`;
+    return;
+  }
+
+  const diffCls = {Easy:'easy',Medium:'medium',Hard:'hard'};
+  $('recoList').innerHTML = d.recommendations.map((r,i)=>`
+    <div class="reco-card fade-in" style="animation-delay:${i*.07}s">
+      <div class="reco-num">#${i+1}</div>
+      <div class="reco-body-inner">
+        <div class="reco-title">${r.display_name}</div>
+        <div class="reco-action">${r.action}</div>
+        <div class="reco-footer">
+          <span class="gain-tag">+${r.probability_gain_pp}% probability</span>
+          <span class="diff-tag ${diffCls[r.difficulty]||'medium'}">${r.difficulty}</span>
+          <span class="change-tag">${r.current_value} → ${r.suggested_value}</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ── Submit ─────────────────────────────────────────────────────────────────────
+$('form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const payload = collectForm();
+
+  const err = validateForm(payload);
+  if(err){ showToast(err); return; }
+
+  setLoading(true);
+  try{
+    const [pred, shap, reco] = await Promise.all([
+      post('/predict',   payload),
+      post('/explain',   payload),
+      post('/recommend', payload),
+    ]);
+    renderPrediction(pred);
+    renderSHAP(shap);
+    renderReco(reco);
+    if(window.innerWidth<880)
+      $('predCard').scrollIntoView({behavior:'smooth',block:'start'});
+  } catch(err){
+    const msg = err.message.includes('fetch')
+      ? `Cannot reach backend at ${API}. Is uvicorn running?`
+      : err.message;
+    showToast(msg);
+  } finally{
+    setLoading(false);
+  }
+});
+</script>
+</body>
+</html>
